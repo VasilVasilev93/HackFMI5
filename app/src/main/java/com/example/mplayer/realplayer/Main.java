@@ -4,6 +4,7 @@ import android.app.ListActivity;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -11,6 +12,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.ListView;
 
+import java.util.Random;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -27,7 +29,8 @@ public class Main extends ListActivity implements MediaPlayer.OnPreparedListener
     MediaPlayer myPlayer;
     ImageButton play_pause;
     ImageButton next;
-    boolean isStarted = false;
+    boolean isPlayerStarted = false;
+    boolean started = false;
     List<String> songs = new ArrayList<String>();
 
     @Override
@@ -64,24 +67,54 @@ public class Main extends ListActivity implements MediaPlayer.OnPreparedListener
         play_pause = (ImageButton) findViewById(R.id.btnPlayPause);
         next = (ImageButton) findViewById(R.id.btnNextSong);
 
+        play_pause.setOnClickListener(new View.OnClickListener(){
+            @Override
 
-        play_pause.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View s) {
+                /*int current_position = myPlayer.getCurrentPosition();
+                Random random_position = new Random();
+                Field[] fields = R.raw.class.getFields();
+                int position = random_position.nextInt(fields.length);*/
+                if(!started){
+                    Random random_position = new Random();
+                    Field[] fields = R.raw.class.getFields();
+                    int position = random_position.nextInt(fields.length);
+                    changeSong(position);
+                    started = true;
+                }
+                else{
+                    if (myPlayer.isPlaying()){
+                        myPlayer.pause();
+                    }
+                    else{
+                        myPlayer.start();
+                    }
+                }
+            }
+
+        });
+        next.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                int current_position = myPlayer.getCurrentPosition();
+                Random random_position = new Random();
+                Field[] fields = R.raw.class.getFields();
+                int position = random_position.nextInt(fields.length);
+                while(current_position == position){
+                    position = random_position.nextInt(fields.length);
+                }
 
+                changeSong(position);
             }
         });
-
-
     }
 
-    @Override
-    protected void onListItemClick(ListView list, View view, int position, long id) {
-        if(isStarted){
+    private void changeSong(int position) {
+        if(isPlayerStarted){
             myPlayer.pause();
         }
         try {
-            isStarted = true;
+            isPlayerStarted = true;
             Field[] fields = R.raw.class.getFields();
             myPlayer = new MediaPlayer();
             myPlayer.reset();
@@ -96,27 +129,9 @@ public class Main extends ListActivity implements MediaPlayer.OnPreparedListener
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        play_pause.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(myPlayer.isPlaying())
-                {
-                    myPlayer.pause();
-                }
-                else myPlayer.start();
-//                if(myPlayer.isPlaying()){
-//                    myPlayer.pause();
-//                } else {
-//                    try {
-//                        Load(music.get(new Random().nextInt(music.size())));
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
-//                }
-            }
-        });
     }
+
+
 
 
     private void updatePlaylist() throws IllegalAccessException {
