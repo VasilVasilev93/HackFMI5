@@ -27,6 +27,7 @@ public class Main extends ListActivity implements MediaPlayer.OnPreparedListener
     MediaPlayer myPlayer;
     ImageButton play_pause;
     ImageButton next;
+    boolean isStarted = false;
     List<String> songs = new ArrayList<String>();
 
     @Override
@@ -67,6 +68,43 @@ public class Main extends ListActivity implements MediaPlayer.OnPreparedListener
         play_pause.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
+            }
+        });
+
+
+    }
+
+    @Override
+    protected void onListItemClick(ListView list, View view, int position, long id) {
+        if(isStarted){
+            myPlayer.pause();
+        }
+        try {
+            isStarted = true;
+            Field[] fields = R.raw.class.getFields();
+            myPlayer = new MediaPlayer();
+            myPlayer.reset();
+            /*String a1 = fields[0].getName();
+            String a2 = fields[0].toString();*/
+            Uri uri = Uri.parse("android.resource://com.example.mplayer.realplayer/" + fields[position].getInt(Integer.class));
+            myPlayer.setDataSource(this, uri);
+            myPlayer.prepare();
+            myPlayer.start();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        play_pause.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(myPlayer.isPlaying())
+                {
+                    myPlayer.pause();
+                }
+                else myPlayer.start();
 //                if(myPlayer.isPlaying()){
 //                    myPlayer.pause();
 //                } else {
@@ -78,34 +116,6 @@ public class Main extends ListActivity implements MediaPlayer.OnPreparedListener
 //                }
             }
         });
-
-        play_pause.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-            }
-        });
-
-
-    }
-
-    @Override
-    protected void onListItemClick(ListView list, View view, int position, long id) {
-        try {
-            Field[] fields = R.raw.class.getFields();
-            myPlayer = new MediaPlayer();
-            myPlayer.reset();
-            String a1 = fields[0].getName();
-            String a2 = fields[0].toString();
-            Uri uri = Uri.parse("android.resource://com.example.mplayer.realplayer/" + fields[position].getInt(Integer.class));
-            myPlayer.setDataSource(this, uri);
-            myPlayer.prepare();
-            myPlayer.start();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
 
