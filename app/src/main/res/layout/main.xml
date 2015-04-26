@@ -29,18 +29,35 @@
 
     <TextView android:layout_width="match_parent" android:id="@+id/textview"
         android:layout_height="wrap_content" android:textColor="@android:color/black"
-        android:textSize="14dp" android:gravity="center"
+        android:textSize="16dp" android:gravity="center"
         android:layout_gravity="center" android:layout_marginLeft="10dp"
         android:layout_marginRight="10dp"
-        android:layout_marginTop="50dp">
+        android:layout_marginTop="50dp"
+        android:textStyle="bold">
     </TextView>
 
     <TextView android:layout_width="match_parent" android:id="@+id/textstepsperminute"
         android:layout_height="wrap_content" android:textColor="@android:color/black"
-        android:textSize="14dp" android:gravity="center"
+        android:textSize="16dp" android:gravity="center"
         android:layout_gravity="center" android:layout_marginLeft="10dp"
         android:layout_marginRight="10dp"
-        android:layout_marginTop="80dp">
+        android:layout_marginTop="80dp"
+        android:textStyle="bold">
     </TextView>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:id="@+id/songName"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/black"
+        android:textSize="16dp"
+        android:gravity="center"
+        android:layout_gravity="center"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@+id/textstepsperminute"
+        android:layout_marginTop="10dp"
+        android:textStyle="bold" />
 
 </RelativeLayout>

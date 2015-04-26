@@ -8,6 +8,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -29,8 +30,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Handler;
 
-//TODO: asyncPrepare
-//TODO: read from card
 public class Main extends Activity implements MediaPlayer.OnPreparedListener, SensorEventListener {
 
     private static final String SCANNER = "SCANNER: ";
@@ -46,6 +45,13 @@ public class Main extends Activity implements MediaPlayer.OnPreparedListener, Se
             if (stepsIntervals.size() == 10) {
                 stepsPerMinute = (Math.abs(stepsIntervals.peekLast() - stepsIntervals.peek()) * 6);
                 stepsIntervals.poll();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        textStepsPerMinute.setText("Steps Per Minute: " + String.valueOf(stepsPerMinute));
+
+                    }
+                });
                 Log.d("Steps Per Minute: ", String.valueOf(stepsPerMinute));
             }
         }
@@ -61,6 +67,7 @@ public class Main extends Activity implements MediaPlayer.OnPreparedListener, Se
 
     private TextView textView;
     private TextView textStepsPerMinute;
+    private TextView textSongName;
     int initialStepsCount;
     boolean isFirstStart;
     int stepsPerMinute;
@@ -88,9 +95,9 @@ public class Main extends Activity implements MediaPlayer.OnPreparedListener, Se
         setContentView(R.layout.main);
         textView = (TextView) findViewById(R.id.textview);
         textStepsPerMinute = (TextView) findViewById(R.id.textstepsperminute);
+        textSongName = (TextView) findViewById(R.id.songName);
         isFirstStart = true;
         initializeSongsMap();
-
         String externalStoragePath = "/storage/sdcard0/GOTOWI";
         File targetDir = new File(externalStoragePath);
         Log.d(" externalStoragePath ::: ", targetDir.getAbsolutePath());
@@ -182,6 +189,8 @@ public class Main extends Activity implements MediaPlayer.OnPreparedListener, Se
     private void randomSongBpmRelation() {
         int i = 0;
         for (BPM bpm : BPM.values()) {
+            songsByBPM.get(bpm.getBpmRate()).add(mediaList.get(i++));
+            if (bpm.equals(BPM.L10)) continue;
             songsByBPM.get(bpm.getBpmRate()).add(mediaList.get(i++));
         }
     }
@@ -319,6 +328,10 @@ public class Main extends Activity implements MediaPlayer.OnPreparedListener, Se
         Integer randomSong = rand.nextInt(songsByBPM.get(songBPM.getBpmRate()).size());
         String songURI = songsByBPM.get(songBPM.getBpmRate()).get(randomSong);
         myPlayer.setDataSource(songURI);
+        StringBuilder sb = new StringBuilder(songURI);
+        int lastIndex = sb.lastIndexOf("/");
+        String songName = sb.substring(lastIndex + 1);
+        textSongName.setText(songName);
         Log.d("SONG URI: ", songURI + " / " + songBPM.getBpmRate().toString());
         myPlayer.prepare();
         myPlayer.start();

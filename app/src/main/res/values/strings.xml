@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">REalPlayer</string>
+    <string name="app_name">Music Motion</string>
 
     <string name="step_counter">
          android.hardware.sensor.stepcounter
