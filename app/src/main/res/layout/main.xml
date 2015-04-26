@@ -12,7 +12,8 @@
         android:src="@drawable/play_button"
         android:background="@android:color/transparent"
         android:layout_alignTop="@+id/btnNextSong"
-        android:layout_centerHorizontal="true" />
+        android:layout_alignStart="@+id/textstepsperminute"
+        android:layout_marginStart="91dp" />
 
 
     <ImageButton
@@ -20,10 +21,26 @@
         android:src="@drawable/next_button"
         android:layout_height="wrap_content"
         android:id="@+id/btnNextSong"
-        android:layout_marginStart="54dp"
         android:background="@android:color/transparent"
-        android:layout_marginBottom="151dp"
+        android:layout_marginBottom="147dp"
         android:layout_alignParentBottom="true"
-        android:layout_toEndOf="@+id/btnPlayPause" />
+        android:layout_toEndOf="@+id/btnPlayPause"
+        android:layout_marginStart="45dp" />
+
+    <TextView android:layout_width="match_parent" android:id="@+id/textview"
+        android:layout_height="wrap_content" android:textColor="@android:color/black"
+        android:textSize="14dp" android:gravity="center"
+        android:layout_gravity="center" android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:layout_marginTop="50dp">
+    </TextView>
+
+    <TextView android:layout_width="match_parent" android:id="@+id/textstepsperminute"
+        android:layout_height="wrap_content" android:textColor="@android:color/black"
+        android:textSize="14dp" android:gravity="center"
+        android:layout_gravity="center" android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:layout_marginTop="80dp">
+    </TextView>
 
 </RelativeLayout>

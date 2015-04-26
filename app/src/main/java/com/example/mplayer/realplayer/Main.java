@@ -1,30 +1,55 @@
 package com.example.mplayer.realplayer;
 
 import android.app.Activity;
-import android.app.ListActivity;
-import android.graphics.Color;
+import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.TextView;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.logging.Handler;
 
+//TODO: asyncPrepare
+//TODO: read from card
+public class Main extends Activity implements MediaPlayer.OnPreparedListener, SensorEventListener {
 
-public class Main extends Activity implements MediaPlayer.OnPreparedListener {
+    private static final String SCANNER = "SCANNER: ";
+
+    private class TimerTaskSteps extends TimerTask {
+
+        int ticks = 0;
+
+        @Override
+        public void run() {
+            stepsIntervals.add(currentStepsCount);
+
+            if (stepsIntervals.size() == 10) {
+                stepsPerMinute = (Math.abs(stepsIntervals.peekLast() - stepsIntervals.peek()) * 6);
+                stepsIntervals.poll();
+                Log.d("Steps Per Minute: ", String.valueOf(stepsPerMinute));
+            }
+        }
+    }
 
     MediaPlayer myPlayer;
     ImageButton play_pause;
@@ -34,20 +59,55 @@ public class Main extends Activity implements MediaPlayer.OnPreparedListener {
     boolean started = false;
     boolean isClicked = false;
 
+    private TextView textView;
+    private TextView textStepsPerMinute;
+    int initialStepsCount;
+    boolean isFirstStart;
+    int stepsPerMinute;
+    int currentStepsCount;
+    LinkedList<Integer> stepsIntervals;
+    private SensorManager mSensorManager;
+    private Sensor mStepCounterSensor;
+    private Sensor mStepDetectorSensor;
+    private File[] mediaFiles;
+
     int current_song = 0;
-    private Map<BPM, List<File>> songsByBPM = new HashMap<BPM, List<File>>();
+    private Map<Integer, List<String>> songsByBPM = new HashMap<>();
+    private List<String> mediaList = new ArrayList<>();
+
 
     @Override
     public void onPrepared(MediaPlayer mp) {
         myPlayer.start();
     }
 
-    ;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+        textView = (TextView) findViewById(R.id.textview);
+        textStepsPerMinute = (TextView) findViewById(R.id.textstepsperminute);
+        isFirstStart = true;
+        initializeSongsMap();
+
+        String externalStoragePath = "/storage/sdcard0/GOTOWI";
+        File targetDir = new File(externalStoragePath);
+        Log.d(" externalStoragePath ::: ", targetDir.getAbsolutePath());
+        mediaFiles = targetDir.listFiles();
+        scanFiles(mediaFiles);
+
+        //TODO: remove hardcore
+        randomSongBpmRelation();
+        // Initialize steps counter and detector sensors
+        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        mStepCounterSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+        //mStepDetectorSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
+        initialStepsCount = 0;
+        Timer stepsTimer = new Timer();
+        TimerTaskSteps task = new TimerTaskSteps();
+        stepsTimer.schedule(task, 0, 1000);
+        stepsIntervals = new LinkedList<Integer>();
 
         myPlayer = new MediaPlayer();
 
@@ -59,26 +119,17 @@ public class Main extends Activity implements MediaPlayer.OnPreparedListener {
             public void onCompletion(MediaPlayer player) {
 
                 Random random_position = new Random();
-                Field[] fields = R.raw.class.getFields();
-                Integer rand = random_position.nextInt(fields.length);
-                while(current_song == rand){
-                    rand = random_position.nextInt(fields.length);
+                Integer rand = random_position.nextInt(mediaList.size());
+                while (current_song == rand) {
+                    rand = random_position.nextInt(mediaList.size());
                 }
                 current_song = rand;
                 player.stop();
-                player.reset();
                 try {
-                    player.setDataSource(that,
-                            Uri.parse("android.resource://com.example.mplayer.realplayer/" + fields[rand].getInt(Integer.class)));
-                } catch (Exception e) {
-
-                }
-                try {
-                    player.prepare();
+                    prepareNextSong(player);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                player.start();
             }
         });
 
@@ -111,7 +162,7 @@ public class Main extends Activity implements MediaPlayer.OnPreparedListener {
         next.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(!started){
+                if (!started) {
                     return;
                 }
                 Random random_position = new Random();
@@ -128,11 +179,122 @@ public class Main extends Activity implements MediaPlayer.OnPreparedListener {
         });
     }
 
-    private void swapButton() {
-        if(isClicked){
-            play_pause.setImageResource(R.drawable.play_button);
+    private void randomSongBpmRelation() {
+        int i = 0;
+        for (BPM bpm : BPM.values()) {
+            songsByBPM.get(bpm.getBpmRate()).add(mediaList.get(i++));
         }
-        else{
+    }
+
+
+    public void scanFiles(File[] scanFiles) {
+
+        if (scanFiles != null) {
+            for (File file : scanFiles) {
+
+//                if (mediaList.size() > 4) {
+//                    return;
+//                }
+
+                if (file.isDirectory()) {
+                    // Log.d(" scaned File ::isDirectory: ",
+                    // file.getAbsolutePath());
+                    scanFiles(file.listFiles());
+
+                } else {
+
+                    addToMediaList(file);
+
+                }
+
+            }
+        } else {
+
+            Log.d(SCANNER,
+                    " *************** No file  is available ***************");
+
+        }
+    }
+
+    private void addToMediaList(File file) {
+
+        if (file != null) {
+
+            String path = file.getAbsolutePath();
+
+            int index = path.lastIndexOf(".");
+
+            String extn = path.substring(index + 1, path.length());
+
+            if (extn.equalsIgnoreCase("mp4") || extn.equalsIgnoreCase("mp3")) {// ||
+
+                Log.d(" scanned File ::: ", file.getAbsolutePath()
+                        + "  file.getPath( )  " + file.getPath());// extn.equalsIgnoreCase("mp3"))
+                // {
+                Log.d(SCANNER, " ***** above file is added to list ");
+                mediaList.add(path);
+
+
+            }
+        }
+    }
+
+    private void initializeSongsMap() {
+        for (BPM bpm : BPM.values()) {
+            songsByBPM.put(bpm.getBpmRate(), new ArrayList<String>());
+        }
+    }
+
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        Sensor sensor = event.sensor;
+        float[] values = event.values;
+        int value = -1;
+
+        if (values.length > 0) {
+            value = (int) values[0];
+            currentStepsCount = value;
+
+            if (isFirstStart) {
+                isFirstStart = false;
+                initialStepsCount = value;
+            }
+        }
+
+        if (sensor.getType() == Sensor.TYPE_STEP_COUNTER) {
+            textView.setText("Step Counter Detected : " + (value - initialStepsCount));
+        } else if (sensor.getType() == Sensor.TYPE_STEP_DETECTOR) {
+            // For test only. Only allowed value is 1.0 i.e. for step taken
+            //textView.setText("Step Detector Detected : " + value);
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
+
+    protected void onResume() {
+
+        super.onResume();
+        mSensorManager.registerListener(this, mStepCounterSensor,
+                SensorManager.SENSOR_DELAY_FASTEST);
+        mSensorManager.registerListener(this, mStepDetectorSensor,
+                SensorManager.SENSOR_DELAY_FASTEST);
+
+    }
+
+    protected void onStop() {
+        super.onStop();
+        mSensorManager.unregisterListener(this, mStepCounterSensor);
+        mSensorManager.unregisterListener(this, mStepDetectorSensor);
+    }
+
+    private void swapButton() {
+        if (isClicked) {
+            play_pause.setImageResource(R.drawable.play_button);
+        } else {
             play_pause.setImageResource(R.drawable.pausebutton);
         }
         isClicked = !isClicked;
@@ -144,18 +306,45 @@ public class Main extends Activity implements MediaPlayer.OnPreparedListener {
         }
         try {
             isPlayerStarted = true;
-            Field[] fields = R.raw.class.getFields();
-            //myPlayer = new MediaPlayer();
-            myPlayer.reset();
-
-            Uri uri = Uri.parse("android.resource://com.example.mplayer.realplayer/" + fields[position].getInt(Integer.class));
-            myPlayer.setDataSource(this, uri);
-            myPlayer.prepare();
-            myPlayer.start();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
+            prepareNextSong(myPlayer);
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void prepareNextSong(MediaPlayer myPlayer) throws IOException {
+        myPlayer.reset();
+        BPM songBPM = getSongBySpm();
+        Random rand = new Random();
+        Integer randomSong = rand.nextInt(songsByBPM.get(songBPM.getBpmRate()).size());
+        String songURI = songsByBPM.get(songBPM.getBpmRate()).get(randomSong);
+        myPlayer.setDataSource(songURI);
+        Log.d("SONG URI: ", songURI + " / " + songBPM.getBpmRate().toString());
+        myPlayer.prepare();
+        myPlayer.start();
+    }
+
+    private BPM getSongBySpm() {
+        if (stepsPerMinute < BPM.L1.getBpmRate()) {
+            return BPM.L1;
+        } else if (stepsPerMinute < BPM.L2.getBpmRate()) {
+            return BPM.L2;
+        } else if (stepsPerMinute < BPM.L3.getBpmRate()) {
+            return BPM.L3;
+        } else if (stepsPerMinute < BPM.L4.getBpmRate()) {
+            return BPM.L4;
+        } else if (stepsPerMinute < BPM.L5.getBpmRate()) {
+            return BPM.L5;
+        } else if (stepsPerMinute < BPM.L6.getBpmRate()) {
+            return BPM.L6;
+        } else if (stepsPerMinute < BPM.L7.getBpmRate()) {
+            return BPM.L7;
+        } else if (stepsPerMinute < BPM.L8.getBpmRate()) {
+            return BPM.L8;
+        } else if (stepsPerMinute < BPM.L9.getBpmRate()) {
+            return BPM.L9;
+        } else {
+            return BPM.L10;
         }
     }
 
@@ -181,17 +370,9 @@ public class Main extends Activity implements MediaPlayer.OnPreparedListener {
         return super.onOptionsItemSelected(item);
     }
 
-    public void Load(File song) throws IOException {
-
-        FileInputStream fis = new FileInputStream(song);
-        myPlayer.setDataSource(fis.getFD());
-        myPlayer.setOnPreparedListener(this);
-        myPlayer.prepareAsync();
-
-    }
-
     @Override
     public void onDestroy() {
+        super.onDestroy();
         if (myPlayer != null) {
             myPlayer.release();
             myPlayer = null;
@@ -205,6 +386,10 @@ public class Main extends Activity implements MediaPlayer.OnPreparedListener {
 
         private BPM(Integer bpmRate) {
             this.bpmRate = bpmRate;
+        }
+
+        public Integer getBpmRate() {
+            return bpmRate;
         }
     }
 }

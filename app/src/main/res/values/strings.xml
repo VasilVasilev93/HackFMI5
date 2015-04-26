@@ -1,6 +1,14 @@
 <resources>
     <string name="app_name">REalPlayer</string>
 
+    <string name="step_counter">
+         android.hardware.sensor.stepcounter
+    </string>
+
+
+    <string name="step_detector">
+         android.hardware.sensor.stepdetector
+    </string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
 </resources>
