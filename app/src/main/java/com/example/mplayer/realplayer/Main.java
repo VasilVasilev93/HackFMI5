@@ -2,6 +2,7 @@ package com.example.mplayer.realplayer;
 
 import android.app.Activity;
 import android.app.ListActivity;
+import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
@@ -9,6 +10,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ImageButton;
 
 import java.io.File;
@@ -27,8 +29,11 @@ public class Main extends Activity implements MediaPlayer.OnPreparedListener {
     MediaPlayer myPlayer;
     ImageButton play_pause;
     ImageButton next;
+    Button play;
     boolean isPlayerStarted = false;
     boolean started = false;
+    boolean isClicked = false;
+
     int current_song = 0;
     private Map<BPM, List<File>> songsByBPM = new HashMap<BPM, List<File>>();
 
@@ -86,9 +91,14 @@ public class Main extends Activity implements MediaPlayer.OnPreparedListener {
                     Field[] fields = R.raw.class.getFields();
                     int position = random_position.nextInt(fields.length);
                     current_song = position;
+
+                    swapButton();
+
                     changeSong(position);
                     started = true;
                 } else {
+                    swapButton();
+
                     if (myPlayer.isPlaying()) {
                         myPlayer.pause();
                     } else {
@@ -111,9 +121,21 @@ public class Main extends Activity implements MediaPlayer.OnPreparedListener {
                     position = random_position.nextInt(fields.length);
                 }
                 current_song = position;
+                play_pause.setImageResource(R.drawable.pausebutton);
+                isClicked = true;
                 changeSong(position);
             }
         });
+    }
+
+    private void swapButton() {
+        if(isClicked){
+            play_pause.setImageResource(R.drawable.play_button);
+        }
+        else{
+            play_pause.setImageResource(R.drawable.pausebutton);
+        }
+        isClicked = !isClicked;
     }
 
     private void changeSong(int position) {
